@@ -7,7 +7,7 @@ app = Flask(__name__)
 @app.route('/api/cik', methods=['GET'])
 def get_cik():
     ticker = request.args.get('ticker', '').upper()
-    url = "https://www.sec.gov/files/company_tickers.json"
+    url = f"https://www.sec.gov/cgi-bin/browse-edgar?CIK={ticker}&owner=exclude&action=getcompany&output=json"
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     try:
