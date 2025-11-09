@@ -3,25 +3,30 @@ import requests
 import os
 
 app = Flask(__name__)
+FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 
 @app.route('/api/cik', methods=['GET'])
 def get_cik():
     ticker = request.args.get('ticker', '').upper()
-    url = f"https://www.sec.gov/cgi-bin/browse-edgar?CIK={ticker}&owner=exclude&action=getcompany&output=json"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    if not FINNHUB_API_KEY:
+        return jsonify({"error": "Missing Finnhub API key"}), 500
+
+    url = f"https://finnhub.io/api/v1/stock/profile2?symbol={ticker}&token={FINNHUB_API_KEY}"
 
     try:
-        resp = requests.get(url, headers=headers)
-
+        resp = requests.get(url)
         if resp.status_code != 200:
-            return jsonify({"error": f"SEC responded with status {resp.status_code}"}), 502
+            return jsonify({"error": f"Finnhub error {resp.status_code}"}), 502
 
         data = resp.json()
-
-        for entry in data.values():
-            if entry['ticker'] == ticker:
-                return jsonify({"cik": str(entry['cik_str']).zfill(10)})
-        return jsonify({"error": "Ticker not found"}), 404
+        if 'name' in data:
+            return jsonify({
+                "cik": data.get("cik", "non dispo"),
+                "name": data.get("name", "non dispo"),
+                "exchange": data.get("exchange", "non dispo")
+            })
+        else:
+            return jsonify({"error": "Ticker non reconnu"}), 404
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
